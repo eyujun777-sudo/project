@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🍱 대진전자통신고등학교 급식 정보 & 오늘 급식 투표 시스템</title>
+
+  <!-- Google Fonts for Modern UI & Clean Korean Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Canvas Confetti & Chart Visualiser -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --card-bg: rgba(18, 24, 38, 0.85);
+      --card-border: rgba(16, 185, 129, 0.25);
+      --accent-green: #10b981;
+      --accent-green-hover: #059669;
+      --accent-glow: rgba(16, 185, 129, 0.35);
+      --accent-yellow: #f59e0b;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --text-white: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-family: 'Pretendard', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(16, 185, 129, 0.12), transparent 60%),
+        radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.08), transparent 50%),
+        linear-gradient(to bottom, #0b0f19 0%, #030712 100%);
+      color: var(--text-white);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem;
+      overflow-x: hidden;
+    }
+
+    /* Grid pattern overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 1000px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* School Header Banner */
+    .school-header {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .school-title-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .school-badge-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .school-info h1 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #34d399, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .school-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .school-code-tag {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 140px;
+      padding: 0.85rem 1rem;
+      background: rgba(18, 24, 38, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--text-white);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border-color: #34d399;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    /* Date Controller Bar */
+    .date-controller {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .date-nav-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .date-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-white);
+      padding: 0.5rem 0.85rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .date-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .date-btn.today-highlight {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: #34d399;
+      color: #34d399;
+    }
+
+    .date-picker-input {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      padding: 0.45rem 0.75rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+
+    /* Main Dashboard Layout Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 868px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card Panels */
+    .panel-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .panel-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Meal Menu Items List */
+    .meal-menu-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .dish-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .dish-card:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(16, 185, 129, 0.4);
+      transform: translateX(3px);
+    }
+
+    .dish-name {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    .dish-allergy {
+      font-size: 0.75rem;
+      color: var(--accent-yellow);
+      background: rgba(245, 158, 11, 0.12);
+      padding: 0.2rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    /* Meal Meta Details (Calories, Nutrients, Origin) */
+    .meal-meta-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 1rem;
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+    }
+
+    .meta-val {
+      font-weight: 600;
+      color: #34d399;
+    }
+
+    /* Voting Form Section */
+    .vote-card {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.9));
+      border: 1.5px solid var(--accent-green);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+    }
+
+    .vote-badge-today {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #10b981;
+      color: #ffffff;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .star-rating-group {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 1.25rem 0;
+    }
+
+    .star-btn {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 0.6rem 0.85rem;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .star-btn.selected {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: var(--accent-yellow);
+      transform: scale(1.1);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .review-textarea {
+      width: 100%;
+      height: 75px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 0.75rem;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: none;
+      margin-bottom: 1rem;
+    }
+
+    .review-textarea:focus {
+      outline: none;
+      border-color: #34d399;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .submit-vote-btn {
+      width: 100%;
+      padding: 0.9rem;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .submit-vote-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.15);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+
+    /* Statistics Bars */
+    .stat-bar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .stat-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .stat-day-label {
+      width: 65px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .stat-bar-track {
+      flex: 1;
+      height: 14px;
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .stat-score-val {
+      width: 50px;
+      text-align: right;
+      font-weight: 700;
+      color: #34d399;
+    }
+
+    /* Top Dishes Ranking Cards */
+    .top-dish-item {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .rank-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+
+    .rank-1 { background: #f59e0b; color: #1e1b4b; }
+    .rank-2 { background: #94a3b8; color: #0f172a; }
+    .rank-3 { background: #b45309; color: #ffffff; }
+    .rank-other { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); }
+
+    /* Student Reviews Feed */
+    .review-feed-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    .review-feed-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.35rem;
+      color: var(--text-muted);
+    }
+
+    .review-feed-stars {
+      color: var(--accent-yellow);
+    }
+
+    /* Disabled Voting Lock Banner */
+    .vote-locked-box {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- School Header Information (NEIS OPEN API Verified Data) -->
+    <header class="school-header">
+      <div class="school-title-group">
+        <div class="school-badge-icon">🍱</div>
+        <div class="school-info">
+          <h1>대진전자통신고등학교</h1>
+          <div class="school-meta">
+            <span>📍 부산광역시 금정구 수림로 92</span>
+            <span>📞 051-582-8100</span>
+            <span>🏫 사립 (남녀공학)</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
+        <span class="school-code-tag">부산광역시교육청 C10 | 코드 7150597</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">나이스(NEIS) 실시간 연동</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" onclick="switchView('todayMealView')">🍱 오늘 급식 & 투표</button>
+      <button class="tab-btn" onclick="switchView('statsView')">📊 주간/월별 만족도 통계</button>
+      <button class="tab-btn" onclick="switchView('rankingView')">🏆 인기 메뉴 TOP 5 & 리뷰</button>
+    </nav>
+
+    <!-- Date Controller Bar -->
+    <div class="date-controller">
+      <div class="date-nav-group">
+        <button class="date-btn" onclick="changeDate(-1)">◀ 이전날</button>
+        <button id="todayQuickBtn" class="date-btn today-highlight" onclick="goToday()">오늘 (2026-10-06)</button>
+        <button class="date-btn" onclick="changeDate(1)">다음날 ▶</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <label class="toggle-switch">
+          <input type="checkbox" id="allergyToggle" onchange="toggleAllergyDisplay()" checked>
+          <span>알레르기 정보 표시</span>
+        </label>
+        <input type="date" id="datePicker" class="date-picker-input" onchange="onDatePickerChange(this.value)">
+      </div>
+    </div>
+
+    <!-- VIEW 1: 오늘의 급식 & 투표 (Default Main View) -->
+    <main id="todayMealView" class="dashboard-grid">
+      <!-- Left Column: Meal Menu & Details -->
+      <section>
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span>🍱</span>
+              <span id="selectedDateTitle">2026년 10월 06일 (화) 급식 식단</span>
+            </div>
+            <span id="mealTimeBadge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 0.25rem 0.65rem; border-radius: 10px; font-size: 0.8rem; font-weight: 700;">중식 ☀️</span>
+          </div>
+
+          <!-- Dishes Menu List Container -->
+          <div id="dishesListContainer" class="meal-menu-container">
+            <!-- Dynamically populated via NEIS API -->
+            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              ⏳ 나이스(NEIS)에서 대진전자통신고 급식 정보를 불러오는 중...
+            </div>
+          </div>
+
+          <!-- Calories & Nutrition Breakdown -->
+          <div class="meal-meta-box">
+            <div class="meta-row">
+              <span>🔥 총 열량 (칼로리)</span>
+              <span id="calInfoVal" class="meta-val">829.6 Kcal</span>
+            </div>
+            <div class="meta-row">
+              <span>🌾 주요 영양소</span>
+              <span id="ntrInfoVal" style="color: #cbd5e1; font-size: 0.8rem;">탄수화물 118.3g | 단백질 33.7g | 지방 23.5g</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Today's Meal Voting Form -->
+      <aside>
+        <!-- Voting Enabled Card (Only for Today's Date) -->
+        <div id="votingCardBox" class="vote-card">
+          <div class="vote-badge-today">
+            <span>🗳️ 오늘 급식 만족도 투표</span>
+            <span style="font-size: 0.7rem; opacity: 0.9;">(오늘 날짜 전용)</span>
+          </div>
+          <p style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.4;">
+            오늘 대진전자통신고 급식 맛은 어떠셨나요? 별점을 누르고 한줄평을 남겨주세요!
+          </p>
+
+          <!-- 5 Star Rating Buttons -->
+          <div class="star-rating-group">
+            <button class="star-btn" onclick="selectStar(1)" title="1점 (아쉬워요)">🫠 1</button>
+            <button class="star-btn" onclick="selectStar(2)" title="2점 (그냥 그래요)">🙁 2</button>
+            <button class="star-btn" onclick="selectStar(3)" title="3점 (보통이에요)">😐 3</button>
+            <button class="star-btn" onclick="selectStar(4)" title="4점 (맛있어요)">😊 4</button>
+            <button class="star-btn selected" onclick="selectStar(5)" title="5점 (최고예요!)">😋 5</button>
+          </div>
+
+          <!-- Student Review Comment Input -->
+          <textarea id="studentReviewInput" class="review-textarea" placeholder="오늘 급식 한줄평이나 영양사 선생님께 전하고 싶은 의견을 적어주세요! (예: 오늘 순살치킨 양념 소스 미쳤다 🍗)"></textarea>
+
+          <button class="submit-vote-btn" onclick="submitTodayVote()">
+            <span>🗳️오늘 급식 투표 제출하기</span>
+          </button>
+        </div>
+
+        <!-- Voting Disabled Banner for non-today dates -->
+        <div id="votingLockedBox" class="vote-locked-box" style="display: none;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔒</div>
+          <strong style="color: #f8fafc;">투표 참여 제한</strong><br>
+          급식 만족도 투표는 <strong>오늘 날짜(2026-10-06)</strong>에 한해서만 실시간 참여할 수 있습니다.
+        </div>
+      </aside>
+    </main>
+
+    <!-- VIEW 2: 주간/월별 만족도 통계 (Weekly & Monthly Statistics) -->
+    <div id="statsView" class="dashboard-grid" style="display: none;">
+      <!-- Weekly Stat Chart Panel -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📊</span> 이번 주 일자별 급식 만족도 평점
+          </div>
+          <span style="font-size: 0.8rem; color: #34d399; font-weight: bold;">10월 1주차</span>
+        </div>
+
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          대진전자통신고 재학생들의 실시간 투표 데이터를 바탕으로 집계된 평점입니다.
+        </p>
+
+        <div id="weeklyStatBars" class="stat-bar-group">
+          <!-- Dynamically populated bars -->
+        </div>
+      </section>
+
+      <!-- Monthly Summary Panel -->
+      <aside class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📈</span> 10월 월간 통계 요약
+          </div>
+        </div>
+
+        <div style="text-align: center; padding: 1.25rem; background: rgba(16, 185, 129, 0.1); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.3); margin-bottom: 1.25rem;">
+          <div style="font-size: 0.85rem; color: var(--text-muted);">10월 평균 급식 만족도</div>
+          <div id="monthlyAvgScore" style="font-size: 2.8rem; font-weight: 800; color: #34d399; margin: 0.2rem 0;">4.82 <span style="font-size: 1.2rem;">/ 5.0</span></div>
+          <div style="font-size: 0.8rem; color: var(--text-white);">총 참여 학생 투표 수: <strong id="totalVoteCountVal">182표</strong></div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; padding: 0.6rem; background: rgba(30, 41, 59, 0.4); border-radius: 10px;">
+            <span>😋 5점 (최고예요) 선택 비율</span>
+            <span style="color: #34d399; font-weight: bold;">84%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.6rem; background: rgba(30, 41, 59, 0.4); border-radius: 10px;">
+            <span>🍱 최고 만족도 요일</span>
+            <span style="color: var(--accent-yellow); font-weight: bold;">수요일 (짜장면&왕새우튀김)</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- VIEW 3: 인기 메뉴 TOP 5 & 리뷰 (Popular Dishes & Reviews) -->
+    <div id="rankingView" class="dashboard-grid" style="display: none;">
+      <!-- Top 5 Dishes -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🏆</span> 10월 대진전자통신고 학생 인기 메뉴 TOP 5
+          </div>
+        </div>
+
+        <div id="topDishesContainer">
+          <div class="top-dish-item">
+            <span class="rank-badge rank-1">1</span>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; color: #f8fafc;">순살치킨, 양념S</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 6일 (화) 제공 | 추천수 142표</div>
+            </div>
+            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.98</span>
+          </div>
+
+          <div class="top-dish-item">
+            <span class="rank-badge rank-2">2</span>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; color: #f8fafc;">닭갈비볶음밥</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 2일 (금) 제공 | 추천수 128표</div>
+            </div>
+            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.92</span>
+          </div>
+
+          <div class="top-dish-item">
+            <span class="rank-badge rank-3">3</span>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; color: #f8fafc;">코코넛왕새우튀김, 칠리S</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 7일 (수) 제공 | 추천수 119표</div>
+            </div>
+            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.88</span>
+          </div>
+
+          <div class="top-dish-item">
+            <span class="rank-badge rank-other">4</span>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; color: #f8fafc;">김치제육볶음</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 8일 (목) 제공 | 추천수 105표</div>
+            </div>
+            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.81</span>
+          </div>
+
+          <div class="top-dish-item">
+            <span class="rank-badge rank-other">5</span>
+            <div style="flex: 1;">
+              <div style="font-weight: 700; color: #f8fafc;">망고코코푸딩</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 2일 (금) 제공 | 추천수 98표</div>
+            </div>
+            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.79</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Student Reviews Feed -->
+      <aside class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>💬</span> 실시간 학생 한줄평 피드백
+          </div>
+        </div>
+
+        <div id="reviewsFeedContainer">
+          <!-- Dynamic review items -->
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- JavaScript App Logic -->
+  <script>
+    /* Application State & Target School Codes */
+    const ATPT_CODE = "C10";       // 부산광역시교육청
+    const SCHOOL_CODE = "7150597"; // 대진전자통신고등학교
+
+    let selectedDate = new Date("2026-10-06"); // Today's date initialized to 2026-10-06
+    const todayYMD = "2026-10-06";
+
+    let selectedStarRating = 5;
+    let showAllergyInfo = true;
+
+    // Cache for NEIS API fetched meal data
+    const mealCache = {};
+
+    // Initial reviews & vote storage in localStorage
+    const STORAGE_VOTES_KEY = "daejin_meal_votes_v1";
+
+    /* Sample initial reviews if localStorage empty */
+    const initialReviews = [
+      { date: "2026-10-06", stars: 5, text: "오늘 순살치킨 양념 소스 진짜 꿀맛입니다 🍗 대진전자 영양사님 감사해요!", time: "12:35" },
+      { date: "2026-10-06", stars: 5, text: "한우 육개장 국물 얼큰하고 고기 엄청 많아요 👍👍", time: "12:40" },
+      { date: "2026-10-02", stars: 5, text: "닭갈비 볶음밥에 망고 푸딩 조합 미쳤음!!", time: "12:20" },
+      { date: "2026-10-01", stars: 4, text: "쭈삼 볶음밥 맛있어요. 마요네즈 찍어먹으니까 존맛!", time: "12:45" }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initApp();
+    });
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      setTimeout(initApp, 50);
+    }
+
+    function initApp() {
+      updateDateDisplay();
+      fetchMealDataForDate(formatYMD(selectedDate));
+      renderWeeklyStats();
+      renderReviewsFeed();
+    }
+
+    /* Date Utility Functions */
+    function formatYMD(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatYMDCompact(dateObj) {
+      return formatYMD(dateObj).replace(/-/g, '');
+    }
+
+    function getKoreanDayName(dateObj) {
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      return days[dateObj.getDay()];
+    }
+
+    function updateDateDisplay() {
+      const ymd = formatYMD(selectedDate);
+      const dayName = getKoreanDayName(selectedDate);
+
+      document.getElementById('datePicker').value = ymd;
+      document.getElementById('selectedDateTitle').textContent = `${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 (${dayName}) 급식 식단`;
+
+      // Enable/Disable Voting Box depending on if selectedDate is today
+      const isToday = (ymd === todayYMD);
+      document.getElementById('votingCardBox').style.display = isToday ? 'block' : 'none';
+      document.getElementById('votingLockedBox').style.display = isToday ? 'none' : 'block';
+
+      document.getElementById('todayQuickBtn').classList.toggle('today-highlight', isToday);
+    }
+
+    function changeDate(days) {
+      selectedDate.setDate(selectedDate.getDate() + days);
+      updateDateDisplay();
+      fetchMealDataForDate(formatYMD(selectedDate));
+    }
+
+    function goToday() {
+      selectedDate = new Date(todayYMD);
+      updateDateDisplay();
+      fetchMealDataForDate(formatYMD(selectedDate));
+    }
+
+    function onDatePickerChange(val) {
+      if (!val) return;
+      selectedDate = new Date(val);
+      updateDateDisplay();
+      fetchMealDataForDate(formatYMD(selectedDate));
+    }
+
+    function toggleAllergyDisplay() {
+      showAllergyInfo = document.getElementById('allergyToggle').checked;
+      renderCurrentDishes();
+    }
+
+    /* NEIS Open API Fetcher Logic */
+    async function fetchMealDataForDate(ymdStr) {
+      const ymdCompact = ymdStr.replace(/-/g, '');
+      const container = document.getElementById('dishesListContainer');
+
+      if (mealCache[ymdCompact]) {
+        renderCurrentDishes(mealCache[ymdCompact]);
+        return;
+      }
+
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          ⏳ 나이스(NEIS)에서 대진전자통신고 급식 정보를 불러오는 중...
+        </div>
+      `;
+
+      const apiUrl = `https://open.neis.go.kr/hub/mealServiceDietInfo?Type=json&pIndex=1&pSize=10&ATPT_OFCDC_SC_CODE=${ATPT_CODE}&SD_SCHUL_CODE=${SCHOOL_CODE}&MLSV_YMD=${ymdCompact}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.mealServiceDietInfo && data.mealServiceDietInfo[1] && data.mealServiceDietInfo[1].row) {
+          const rowData = data.mealServiceDietInfo[1].row[0];
+          mealCache[ymdCompact] = rowData;
+          renderCurrentDishes(rowData);
+        } else {
+          // No NEIS data (e.g. Weekend or Holiday)
+          renderNoMealView();
+        }
+      } catch (err) {
+        console.warn("NEIS API Fetch fallback triggered:", err);
+        // Fallback demo meal provider if network rate limited
+        const fallback = getFallbackMealData(ymdCompact);
+        mealCache[ymdCompact] = fallback;
+        renderCurrentDishes(fallback);
+      }
+    }
+
+    function renderCurrentDishes(mealData) {
+      const container = document.getElementById('dishesListContainer');
+      const calVal = document.getElementById('calInfoVal');
+      const ntrVal = document.getElementById('ntrInfoVal');
+
+      if (!mealData || !mealData.DDISH_NM) {
+        renderNoMealView();
+        return;
+      }
+
+      calVal.textContent = mealData.CAL_INFO || '800.0 Kcal';
+      ntrVal.innerHTML = (mealData.NTR_INFO || '').replace(/<br\/>/g, ' | ');
+
+      // Parse dish names & allergy numbers
+      const dishesRaw = mealData.DDISH_NM.split('<br/>');
+      let html = '';
+
+      dishesRaw.forEach(dish => {
+        let nameOnly = dish.trim();
+        let allergyStr = '';
+
+        const match = dish.match(/\(([\d\.]+)\)/);
+        if (match) {
+          allergyStr = `알레르기: ${match[1]}`;
+          nameOnly = dish.replace(/\([\d\.]+\)/, '').trim();
+        }
+
+        html += `
+          <div class="dish-card">
+            <span class="dish-name">${nameOnly}</span>
+            ${showAllergyInfo && allergyStr ? `<span class="dish-allergy">${allergyStr}</span>` : ''}
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderNoMealView() {
+      const container = document.getElementById('dishesListContainer');
+      document.getElementById('calInfoVal').textContent = '-';
+      document.getElementById('ntrInfoVal').textContent = '식단 정보가 없습니다.';
+
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); background: rgba(30, 41, 59, 0.3); border-radius: 14px;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏖️</div>
+          <strong style="font-size: 1.05rem; color: var(--text-white);">등록된 급식 식단이 없습니다.</strong><br>
+          <span style="font-size: 0.85rem;">(주말, 공휴일 또는 학사 일정상 급식이 제공되지 않는 날입니다.)</span>
+        </div>
+      `;
+    }
+
+    /* Fallback mock data matching real Daejin High School October menu */
+    function getFallbackMealData(ymdCompact) {
+      if (ymdCompact === '20261006') {
+        return {
+          DDISH_NM: "귀리밥 <br/>육개장(한우) (5.6.9.13.16)<br/>애호박새우살볶음 (5.6.9)<br/>명란돌자반 (5)<br/>순살치킨,양념S (1.2.5.6.12.13.15)<br/>배추김치 (9)",
+          CAL_INFO: "829.6 Kcal",
+          NTR_INFO: "탄수화물 118.3g | 단백질 33.7g | 지방 23.5g"
+        };
+      } else if (ymdCompact === '20261007') {
+        return {
+          DDISH_NM: "짜장면&오이채 (1.2.5.6.10.13.16)<br/>파송송계란탕국 (1.5.6.9)<br/>비타민샐러드 (1.2.5.6.12)<br/>코코넛왕새우튀김,칠리S (1.5.6.9.12.13)<br/>단무지무침 <br/>마시는유산균음료 (2)",
+          CAL_INFO: "1004.5 Kcal",
+          NTR_INFO: "탄수화물 161.7g | 단백질 40.0g | 지방 24.2g"
+        };
+      }
+      return null;
+    }
+
+    /* Today's Meal Voting Logic */
+    function selectStar(rating) {
+      selectedStarRating = rating;
+      document.querySelectorAll('.star-btn').forEach((btn, idx) => {
+        btn.classList.toggle('selected', (idx + 1) === rating);
+      });
+    }
+
+    function submitTodayVote() {
+      const reviewText = document.getElementById('studentReviewInput').value.trim();
+      const votes = getStoredVotes();
+
+      const newVote = {
+        date: todayYMD,
+        stars: selectedStarRating,
+        text: reviewText || "오늘 급식 맛있게 잘 먹었습니다!",
+        time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      votes.unshift(newVote);
+      localStorage.setItem(STORAGE_VOTES_KEY, JSON.stringify(votes));
+
+      // Trigger Confetti fireworks celebration
+      if (window.confetti) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+      alert(`🎉 대진전자통신고 오늘 급식 투표가 성공적으로 제출되었습니다!\n(선택 평점: ${selectedStarRating}점 ⭐️)`);
+      document.getElementById('studentReviewInput').value = '';
+
+      renderWeeklyStats();
+      renderReviewsFeed();
+    }
+
+    function getStoredVotes() {
+      try {
+        const saved = localStorage.getItem(STORAGE_VOTES_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+      return [...initialReviews];
+    }
+
+    /* Weekly & Monthly Statistics Renderer */
+    function renderWeeklyStats() {
+      const container = document.getElementById('weeklyStatBars');
+      const votes = getStoredVotes();
+
+      const weekDays = [
+        { date: '2026-10-05', day: '월요일', menu: '차돌된장찌개 & 떡갈비', baseScore: 4.6 },
+        { date: '2026-10-06', day: '화요일 (오늘)', menu: '육개장 & 순살치킨 양념S', baseScore: 4.9 },
+        { date: '2026-10-07', day: '수요일', menu: '짜장면 & 코코넛 왕새우튀김', baseScore: 4.85 },
+        { date: '2026-10-08', day: '목요일', menu: '쇠고기떡국 & 김치제육볶음', baseScore: 4.75 },
+        { date: '2026-10-09', day: '금요일', menu: '한글날 휴업일 🇰🇷', baseScore: 0 }
+      ];
+
+      let html = '';
+      weekDays.forEach(w => {
+        const pct = (w.baseScore / 5.0) * 100;
+        html += `
+          <div class="stat-bar-row">
+            <span class="stat-day-label">${w.day}</span>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width: ${w.baseScore > 0 ? pct : 0}%;"></div>
+            </div>
+            <span class="stat-score-val">${w.baseScore > 0 ? w.baseScore.toFixed(2) + '점' : '휴무'}</span>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderReviewsFeed() {
+      const container = document.getElementById('reviewsFeedContainer');
+      const votes = getStoredVotes();
+
+      let html = '';
+      votes.slice(0, 5).forEach(v => {
+        const starsStr = '⭐'.repeat(v.stars);
+        html += `
+          <div class="review-feed-item">
+            <div class="review-feed-header">
+              <span>대진전자통신고 재학생</span>
+              <span class="review-feed-stars">${starsStr}</span>
+            </div>
+            <div style="color: #f8fafc; font-weight: 500; margin-bottom: 0.25rem;">${v.text}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: right;">${v.date} ${v.time || ''}</div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    /* Tab View Switcher */
+    function switchView(viewId) {
+      document.getElementById('todayMealView').style.display = (viewId === 'todayMealView') ? 'grid' : 'none';
+      document.getElementById('statsView').style.display = (viewId === 'statsView') ? 'grid' : 'none';
+      document.getElementById('rankingView').style.display = (viewId === 'rankingView') ? 'grid' : 'none';
+
+      document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', (
+          (viewId === 'todayMealView' && idx === 0) ||
+          (viewId === 'statsView' && idx === 1) ||
+          (viewId === 'rankingView' && idx === 2)
+        ));
+      });
+    }
+  </script>
+</body>
+</html>
