@@ -1,853 +1,1753 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🍱 대진전자통신고등학교 급식 정보 & 오늘 급식 투표 시스템</title>
+  <title>대진전자통신고등학교 급식 정보 & 만족도 투표</title>
+  <meta name="description" content="대진전자통신고등학교 나이스(NEIS) 실시간 급식 정보와 학생 만족도 투표 시스템" />
 
-  <!-- Google Fonts for Modern UI & Clean Korean Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Canvas Confetti & Chart Visualiser -->
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
+    /* ===== THEME VARIABLES ===== */
     :root {
-      --bg-main: #0b0f19;
-      --card-bg: rgba(18, 24, 38, 0.85);
-      --card-border: rgba(16, 185, 129, 0.25);
-      --accent-green: #10b981;
-      --accent-green-hover: #059669;
-      --accent-glow: rgba(16, 185, 129, 0.35);
-      --accent-yellow: #f59e0b;
-      --accent-blue: #3b82f6;
-      --accent-purple: #8b5cf6;
-      --text-white: #f8fafc;
-      --text-muted: #94a3b8;
-      --font-family: 'Pretendard', sans-serif;
+      --font: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --transition: 0.2s ease;
     }
 
-    * {
+    [data-theme="dark"] {
+      --bg: #111318;
+      --bg-sub: #1a1d24;
+      --surface: #20242e;
+      --surface-hover: #272b36;
+      --border: #2e3340;
+      --border-light: #3a3f4e;
+      --text-primary: #e8eaf0;
+      --text-secondary: #8b92a5;
+      --text-muted: #5c6375;
+      --accent: #6366f1;
+      --accent-hover: #5254cc;
+      --accent-light: rgba(99, 102, 241, 0.12);
+      --accent-text: #a5b4fc;
+      --green: #34d399;
+      --green-light: rgba(52, 211, 153, 0.12);
+      --yellow: #fbbf24;
+      --yellow-light: rgba(251, 191, 36, 0.12);
+      --red: #f87171;
+      --red-light: rgba(248, 113, 113, 0.1);
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f6fb;
+      --bg-sub: #eef0f7;
+      --surface: #ffffff;
+      --surface-hover: #f8f9fc;
+      --border: #e2e6f0;
+      --border-light: #cdd3e0;
+      --text-primary: #1a1d2e;
+      --text-secondary: #5a6280;
+      --text-muted: #99a0b5;
+      --accent: #6366f1;
+      --accent-hover: #5254cc;
+      --accent-light: rgba(99, 102, 241, 0.08);
+      --accent-text: #4f52c8;
+      --green: #059669;
+      --green-light: rgba(5, 150, 105, 0.08);
+      --yellow: #d97706;
+      --yellow-light: rgba(217, 119, 6, 0.1);
+      --red: #dc2626;
+      --red-light: rgba(220, 38, 38, 0.08);
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
     body {
-      background-color: var(--bg-main);
-      background-image: 
-        radial-gradient(circle at 50% 10%, rgba(16, 185, 129, 0.12), transparent 60%),
-        radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.08), transparent 50%),
-        linear-gradient(to bottom, #0b0f19 0%, #030712 100%);
-      color: var(--text-white);
-      font-family: var(--font-family);
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1.5rem 1rem;
-      overflow-x: hidden;
+      padding: 1.25rem 1rem 3rem;
+      transition: background var(--transition), color var(--transition);
     }
 
-    /* Grid pattern overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: 
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .app-container {
+    .app-wrap {
       width: 100%;
-      max-width: 1000px;
-      position: relative;
-      z-index: 1;
+      max-width: 960px;
     }
 
-    /* School Header Banner */
-    .school-header {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    /* ===== HEADER ===== */
+    .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
+      padding: 1rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
       gap: 1rem;
+      flex-wrap: wrap;
     }
 
-    .school-title-group {
+    .header-left {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.85rem;
     }
 
-    .school-badge-icon {
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, #10b981, #059669);
-      border-radius: 16px;
+    .header-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--accent-light);
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.8rem;
-      box-shadow: 0 0 20px var(--accent-glow);
+      font-size: 1.5rem;
+      flex-shrink: 0;
     }
 
-    .school-info h1 {
-      font-size: 1.45rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #34d399, #60a5fa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.3;
     }
 
-    .school-meta {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-top: 0.25rem;
+    .header-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.15rem;
+    }
+
+    .header-right {
       display: flex;
+      align-items: center;
+      gap: 0.5rem;
       flex-wrap: wrap;
-      gap: 0.75rem;
     }
 
-    .school-code-tag {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-      padding: 0.2rem 0.6rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
+    .school-tag {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+    }
+
+    /* ===== SETTINGS ===== */
+    .settings-wrapper {
+      position: relative;
+    }
+
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.85rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
       font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font);
     }
 
-    /* Navigation Tabs */
+    .settings-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .settings-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 1rem;
+      min-width: 220px;
+      z-index: 100;
+      display: none;
+    }
+
+    .settings-panel.open {
+      display: block;
+    }
+
+    .settings-panel-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.75rem;
+    }
+
+    .settings-row-title {
+      font-size: 0.88rem;
+      color: var(--text-primary);
+      font-weight: 500;
+      margin-bottom: 0.45rem;
+    }
+
+    .theme-btn-group {
+      display: flex;
+      gap: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .theme-mode-btn {
+      flex: 1;
+      padding: 0.45rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-sub);
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font);
+    }
+
+    .theme-mode-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .settings-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.75rem 0;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .switch {
+      position: relative;
+      width: 38px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      display: none;
+    }
+
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border-light);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+
+    .switch-track::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform var(--transition);
+    }
+
+    .switch input:checked+.switch-track {
+      background: var(--accent);
+    }
+
+    .switch input:checked+.switch-track::after {
+      transform: translateX(16px);
+    }
+
+    #settingsOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+    }
+
+    #settingsOverlay.open {
+      display: block;
+    }
+
+    /* ===== NAV TABS ===== */
     .nav-tabs {
       display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-      overflow-x: auto;
-      padding-bottom: 0.25rem;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+      background: var(--surface);
+      padding: 0.4rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
     }
 
     .tab-btn {
       flex: 1;
-      min-width: 140px;
-      padding: 0.85rem 1rem;
-      background: rgba(18, 24, 38, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 14px;
-      color: var(--text-muted);
-      font-size: 0.95rem;
+      padding: 0.6rem 0.75rem;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.25s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
+      transition: all var(--transition);
       white-space: nowrap;
+      font-family: var(--font);
     }
 
     .tab-btn:hover {
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--text-white);
+      background: var(--bg-sub);
+      color: var(--text-primary);
     }
 
     .tab-btn.active {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #ffffff;
-      border-color: #34d399;
-      box-shadow: 0 4px 20px var(--accent-glow);
+      background: var(--accent);
+      color: #fff;
     }
 
-    /* Date Controller Bar */
-    .date-controller {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.5rem;
+    /* ===== DATE BAR ===== */
+    .date-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
     }
 
-    .date-nav-group {
+    .date-nav {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
 
     .date-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: var(--text-white);
-      padding: 0.5rem 0.85rem;
-      border-radius: 10px;
-      font-size: 0.85rem;
+      padding: 0.45rem 0.85rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.83rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all var(--transition);
+      font-family: var(--font);
     }
 
     .date-btn:hover {
-      background: rgba(255, 255, 255, 0.18);
-      transform: translateY(-1px);
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
-    .date-btn.today-highlight {
-      background: rgba(16, 185, 129, 0.2);
-      border-color: #34d399;
-      color: #34d399;
+    .date-btn.today-active {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent-text);
     }
 
-    .date-picker-input {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+    .date-picker {
       padding: 0.45rem 0.75rem;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-family: inherit;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.83rem;
+      font-family: var(--font);
+      cursor: pointer;
     }
 
-    /* Main Dashboard Layout Grid */
-    .dashboard-grid {
+    /* ===== LAYOUT GRID ===== */
+    .content-grid {
       display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 1.5rem;
+      grid-template-columns: 1fr 320px;
+      gap: 1rem;
+      align-items: start;
     }
 
-    @media (max-width: 868px) {
-      .dashboard-grid {
+    @media (max-width: 800px) {
+      .content-grid {
         grid-template-columns: 1fr;
+      }
+
+      .tab-btn {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.4rem;
+      }
+
+      .header-title {
+        font-size: 1rem;
       }
     }
 
-    /* Card Panels */
-    .panel-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
     }
 
-    .panel-header {
+    .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
       padding-bottom: 0.75rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--border);
     }
 
-    .panel-title {
-      font-size: 1.15rem;
+    .card-title {
+      font-size: 0.98rem;
       font-weight: 700;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
 
-    /* Meal Menu Items List */
-    .meal-menu-container {
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .badge-green {
+      background: var(--green-light);
+      color: var(--green);
+    }
+
+    .badge-accent {
+      background: var(--accent-light);
+      color: var(--accent-text);
+    }
+
+    .badge-yellow {
+      background: var(--yellow-light);
+      color: var(--yellow);
+    }
+
+    /* ===== MEAL LIST ===== */
+    .meal-list {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.45rem;
     }
 
-    .dish-card {
-      background: rgba(30, 41, 59, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      padding: 1rem 1.25rem;
+    .dish-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      transition: all 0.2s ease;
+      padding: 0.65rem 0.9rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: all var(--transition);
     }
 
-    .dish-card:hover {
-      background: rgba(30, 41, 59, 0.8);
-      border-color: rgba(16, 185, 129, 0.4);
-      transform: translateX(3px);
+    .dish-row:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
     }
 
     .dish-name {
-      font-size: 1.05rem;
+      font-size: 0.9rem;
       font-weight: 600;
-      color: #f8fafc;
+      color: var(--text-primary);
     }
 
-    .dish-allergy {
-      font-size: 0.75rem;
-      color: var(--accent-yellow);
-      background: rgba(245, 158, 11, 0.12);
-      padding: 0.2rem 0.5rem;
-      border-radius: 8px;
-      border: 1px solid rgba(245, 158, 11, 0.25);
+    .allergy-tag {
+      font-size: 0.72rem;
+      color: var(--yellow);
+      background: var(--yellow-light);
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-weight: 500;
+      white-space: nowrap;
     }
 
-    /* Meal Meta Details (Calories, Nutrients, Origin) */
-    .meal-meta-box {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 14px;
-      padding: 1rem;
-      margin-top: 1rem;
+    /* ===== NUTRITION ===== */
+    .nutrition-box {
+      margin-top: 0.75rem;
+      padding: 0.85rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
-      font-size: 0.85rem;
+      gap: 0.45rem;
     }
 
-    .meta-row {
+    .nutrition-row {
       display: flex;
       justify-content: space-between;
-      color: var(--text-muted);
+      font-size: 0.82rem;
+      color: var(--text-secondary);
     }
 
-    .meta-val {
-      font-weight: 600;
-      color: #34d399;
-    }
-
-    /* Voting Form Section */
-    .vote-card {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.9));
-      border: 1.5px solid var(--accent-green);
-      border-radius: 20px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
-    }
-
-    .vote-badge-today {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      background: #10b981;
-      color: #ffffff;
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
+    .nutrition-val {
       font-weight: 700;
-      margin-bottom: 0.75rem;
+      color: var(--green);
     }
 
-    .star-rating-group {
+    /* ===== GITHUB AUTH ===== */
+    /* Login prompt (not authenticated) */
+    .login-prompt {
+      text-align: center;
+      padding: 1.5rem 1rem;
+    }
+
+    .gh-logo {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: 50%;
       display: flex;
+      align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      margin: 1.25rem 0;
+      margin: 0 auto 0.85rem;
+      font-size: 1.6rem;
     }
 
-    .star-btn {
-      background: rgba(30, 41, 59, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      padding: 0.6rem 0.85rem;
-      font-size: 1.3rem;
-      cursor: pointer;
-      transition: all 0.2s;
+    .login-prompt h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
     }
 
-    .star-btn.selected {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: var(--accent-yellow);
-      transform: scale(1.1);
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
-    }
-
-    .review-textarea {
-      width: 100%;
-      height: 75px;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      padding: 0.75rem;
-      color: #ffffff;
-      font-family: inherit;
-      font-size: 0.9rem;
-      resize: none;
+    .login-prompt p {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
       margin-bottom: 1rem;
     }
 
-    .review-textarea:focus {
-      outline: none;
-      border-color: #34d399;
-      box-shadow: 0 0 10px var(--accent-glow);
-    }
-
-    .submit-vote-btn {
-      width: 100%;
-      padding: 0.9rem;
-      background: linear-gradient(135deg, #10b981, #059669);
+    .gh-login-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      background: #24292f;
+      color: #fff;
       border: none;
-      border-radius: 12px;
-      color: #ffffff;
-      font-size: 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all var(--transition);
+      font-family: var(--font);
+      width: 100%;
+      justify-content: center;
+    }
+
+    .gh-login-btn:hover {
+      background: #1c2026;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    [data-theme="light"] .gh-login-btn {
+      background: #1a1f25;
+    }
+
+    /* Device flow code display */
+    .device-flow-box {
+      text-align: center;
+      padding: 0.5rem 0;
+    }
+
+    .device-flow-box p {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      line-height: 1.6;
+    }
+
+    .device-code-display {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: var(--accent-text);
+      background: var(--accent-light);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 1rem;
+      margin-bottom: 0.85rem;
+      font-family: monospace;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .device-code-display:hover {
+      background: rgba(99, 102, 241, 0.2);
+    }
+
+    .device-code-display.copied {
+      color: var(--green);
+      border-color: var(--green);
+      background: var(--green-light);
+    }
+
+    .open-github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font);
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+      text-decoration: none;
+    }
+
+    .open-github-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .polling-status {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
     }
 
-    .submit-vote-btn:hover {
-      transform: translateY(-2px);
-      filter: brightness(1.15);
-      box-shadow: 0 6px 20px var(--accent-glow);
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-light);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
 
-    /* Statistics Bars */
-    .stat-bar-group {
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .cancel-auth-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      text-decoration: underline;
+      font-family: var(--font);
+    }
+
+    .cancel-auth-btn:hover {
+      color: var(--red);
+    }
+
+    /* User profile (authenticated) */
+    .user-profile-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.65rem 0.85rem;
+      background: var(--green-light);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.75rem;
+    }
+
+    [data-theme="light"] .user-profile-bar {
+      border-color: rgba(5, 150, 105, 0.2);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--green);
+      flex-shrink: 0;
+      object-fit: cover;
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .user-label {
+      font-size: 0.73rem;
+      color: var(--green);
+      margin-top: 0.05rem;
+    }
+
+    .logout-btn {
+      padding: 0.3rem 0.65rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font);
+    }
+
+    .logout-btn:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ===== VOTE SECTION ===== */
+    .vote-section {
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
-      margin-top: 1rem;
     }
 
-    .stat-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.85rem;
-    }
-
-    .stat-day-label {
-      width: 65px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
-    .stat-bar-track {
-      flex: 1;
-      height: 14px;
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .stat-bar-fill {
-      height: 100%;
-      border-radius: 8px;
-      background: linear-gradient(90deg, #10b981, #34d399);
-      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .stat-score-val {
-      width: 50px;
-      text-align: right;
-      font-weight: 700;
-      color: #34d399;
-    }
-
-    /* Top Dishes Ranking Cards */
-    .top-dish-item {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      background: rgba(30, 41, 59, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .rank-badge {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 0.85rem;
-    }
-
-    .rank-1 { background: #f59e0b; color: #1e1b4b; }
-    .rank-2 { background: #94a3b8; color: #0f172a; }
-    .rank-3 { background: #b45309; color: #ffffff; }
-    .rank-other { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); }
-
-    /* Student Reviews Feed */
-    .review-feed-item {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 0.85rem 1rem;
-      margin-bottom: 0.6rem;
-      font-size: 0.85rem;
-    }
-
-    .review-feed-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.35rem;
-      color: var(--text-muted);
-    }
-
-    .review-feed-stars {
-      color: var(--accent-yellow);
-    }
-
-    /* Disabled Voting Lock Banner */
-    .vote-locked-box {
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px dashed rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
-      padding: 1.25rem;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.9rem;
+    .vote-description {
+      font-size: 0.84rem;
+      color: var(--text-secondary);
       line-height: 1.5;
     }
 
-    .toggle-switch {
+    .star-row {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    .star-btn {
+      flex: 1;
+      padding: 0.55rem 0.3rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font);
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .star-btn:hover {
+      border-color: var(--yellow);
+    }
+
+    .star-btn.active {
+      background: var(--yellow-light);
+      border-color: var(--yellow);
+      transform: scale(1.05);
+    }
+
+    .review-input {
+      width: 100%;
+      height: 70px;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 0.85rem;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 0.84rem;
+      resize: none;
+      transition: border-color var(--transition);
+    }
+
+    .review-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .review-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font);
+    }
+
+    .submit-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    }
+
+    .vote-locked {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    .vote-locked .lock-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ===== STAT BARS ===== */
+    .stat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 50px;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.82rem;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .stat-track {
+      height: 9px;
+      background: var(--bg-sub);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .stat-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 0.7s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    .stat-score {
+      font-weight: 700;
+      color: var(--accent-text);
+      text-align: right;
+    }
+
+    /* ===== MONTHLY ===== */
+    .monthly-highlight {
+      text-align: center;
+      padding: 1.25rem;
+      background: var(--accent-light);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+    }
+
+    .monthly-score {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--accent-text);
+      line-height: 1.1;
+    }
+
+    .monthly-label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.2rem;
+    }
+
+    .info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0.85rem;
+      background: var(--bg-sub);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+    }
+
+    .info-item-label {
+      color: var(--text-secondary);
+    }
+
+    .info-item-val {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* ===== RANKING ===== */
+    .rank-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .rank-row {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.85rem;
+      gap: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: border-color var(--transition);
+    }
+
+    .rank-row:hover {
+      border-color: var(--border-light);
+    }
+
+    .rank-num {
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .rank-1 {
+      background: #f59e0b;
+      color: #fff;
+    }
+
+    .rank-2 {
+      background: #94a3b8;
+      color: #fff;
+    }
+
+    .rank-3 {
+      background: #b45309;
+      color: #fff;
+    }
+
+    .rank-other {
+      background: var(--border-light);
+      color: var(--text-secondary);
+    }
+
+    .rank-info {
+      flex: 1;
+    }
+
+    .rank-dish {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .rank-meta {
+      font-size: 0.74rem;
       color: var(--text-muted);
-      cursor: pointer;
+      margin-top: 0.1rem;
+    }
+
+    .rank-score {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--yellow);
+      white-space: nowrap;
+    }
+
+    /* ===== REVIEWS ===== */
+    .review-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .review-item {
+      padding: 0.8rem 0.9rem;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .review-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .review-author {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .review-stars {
+      font-size: 0.78rem;
+      color: var(--yellow);
+    }
+
+    .review-text {
+      font-size: 0.84rem;
+      color: var(--text-primary);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .review-date {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      text-align: right;
+      margin-top: 0.3rem;
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon {
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state strong {
+      display: block;
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.2rem;
+    }
+
+    .empty-state span {
+      font-size: 0.8rem;
+    }
+
+    /* ===== AUTH ERROR NOTICE ===== */
+    .config-notice {
+      background: var(--yellow-light);
+      border: 1px solid var(--yellow);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 0.9rem;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .config-notice strong {
+      color: var(--yellow);
     }
   </style>
 </head>
+
 <body>
 
-  <div class="app-container">
-    <!-- School Header Information (NEIS OPEN API Verified Data) -->
-    <header class="school-header">
-      <div class="school-title-group">
-        <div class="school-badge-icon">🍱</div>
-        <div class="school-info">
-          <h1>대진전자통신고등학교</h1>
-          <div class="school-meta">
-            <span>📍 부산광역시 금정구 수림로 92</span>
-            <span>📞 051-582-8100</span>
-            <span>🏫 사립 (남녀공학)</span>
-          </div>
+  <div class="app-wrap">
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+      <div class="header-left">
+        <div class="header-icon">🍱</div>
+        <div>
+          <div class="header-title">대진전자통신고등학교 급식</div>
+          <div class="header-sub">📍 부산 금정구&nbsp;·&nbsp;NEIS 실시간 연동&nbsp;·&nbsp;C10 / 7150597</div>
         </div>
       </div>
-      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
-        <span class="school-code-tag">부산광역시교육청 C10 | 코드 7150597</span>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">나이스(NEIS) 실시간 연동</span>
+      <div class="header-right">
+        <span class="school-tag">부산광역시교육청</span>
+        <div class="settings-wrapper">
+          <button class="settings-btn" id="settingsBtn" onclick="toggleSettings()">⚙️ 설정</button>
+          <div class="settings-panel" id="settingsPanel">
+            <div class="settings-panel-title">화면 설정</div>
+            <div class="settings-row-title">테마 모드</div>
+            <div class="theme-btn-group">
+              <button class="theme-mode-btn active" id="btnDark" onclick="setTheme('dark')">🌙 다크모드</button>
+              <button class="theme-mode-btn" id="btnLight" onclick="setTheme('light')">☀️ 라이트모드</button>
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-row">
+              <span>알레르기 정보 표시</span>
+              <label class="switch">
+                <input type="checkbox" id="allergyToggle" onchange="toggleAllergyDisplay()" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
+    <div id="settingsOverlay" onclick="closeSettings()"></div>
 
-    <!-- Navigation Tabs -->
+    <!-- ===== NAV TABS ===== -->
     <nav class="nav-tabs">
-      <button class="tab-btn active" onclick="switchView('todayMealView')">🍱 오늘 급식 & 투표</button>
-      <button class="tab-btn" onclick="switchView('statsView')">📊 주간/월별 만족도 통계</button>
-      <button class="tab-btn" onclick="switchView('rankingView')">🏆 인기 메뉴 TOP 5 & 리뷰</button>
+      <button class="tab-btn active" onclick="switchView('todayMealView', 0)">🍱 오늘 급식 &amp; 투표</button>
+      <button class="tab-btn" onclick="switchView('statsView', 1)">📊 만족도 통계</button>
+      <button class="tab-btn" onclick="switchView('rankingView', 2)">🏆 인기 메뉴 &amp; 리뷰</button>
     </nav>
 
-    <!-- Date Controller Bar -->
-    <div class="date-controller">
-      <div class="date-nav-group">
-        <button class="date-btn" onclick="changeDate(-1)">◀ 이전날</button>
-        <button id="todayQuickBtn" class="date-btn today-highlight" onclick="goToday()">오늘 (2026-10-06)</button>
-        <button class="date-btn" onclick="changeDate(1)">다음날 ▶</button>
+    <!-- ===== DATE BAR ===== -->
+    <div class="date-bar">
+      <div class="date-nav">
+        <button class="date-btn" onclick="changeDate(-1)">◀ 이전</button>
+        <button class="date-btn today-active" id="todayBtn" onclick="goToday()">오늘</button>
+        <button class="date-btn" onclick="changeDate(1)">다음 ▶</button>
       </div>
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <label class="toggle-switch">
-          <input type="checkbox" id="allergyToggle" onchange="toggleAllergyDisplay()" checked>
-          <span>알레르기 정보 표시</span>
-        </label>
-        <input type="date" id="datePicker" class="date-picker-input" onchange="onDatePickerChange(this.value)">
-      </div>
+      <input type="date" id="datePicker" class="date-picker" onchange="onDatePickerChange(this.value)">
     </div>
 
-    <!-- VIEW 1: 오늘의 급식 & 투표 (Default Main View) -->
-    <main id="todayMealView" class="dashboard-grid">
-      <!-- Left Column: Meal Menu & Details -->
+    <!-- ===== VIEW 1: 오늘 급식 & 투표 ===== -->
+    <div id="todayMealView" class="content-grid">
       <section>
-        <div class="panel-card">
-          <div class="panel-header">
-            <div class="panel-title">
-              <span>🍱</span>
-              <span id="selectedDateTitle">2026년 10월 06일 (화) 급식 식단</span>
-            </div>
-            <span id="mealTimeBadge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 0.25rem 0.65rem; border-radius: 10px; font-size: 0.8rem; font-weight: 700;">중식 ☀️</span>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🍱 <span id="selectedDateTitle">급식 식단</span></div>
+            <span class="badge badge-green" id="mealTimeBadge">중식 ☀️</span>
           </div>
-
-          <!-- Dishes Menu List Container -->
-          <div id="dishesListContainer" class="meal-menu-container">
-            <!-- Dynamically populated via NEIS API -->
-            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-              ⏳ 나이스(NEIS)에서 대진전자통신고 급식 정보를 불러오는 중...
+          <div id="dishesListContainer" class="meal-list">
+            <div class="empty-state">
+              <div class="icon">⏳</div>
+              <strong>급식 정보 불러오는 중...</strong>
+              <span>NEIS에서 데이터를 가져오고 있습니다.</span>
             </div>
           </div>
-
-          <!-- Calories & Nutrition Breakdown -->
-          <div class="meal-meta-box">
-            <div class="meta-row">
-              <span>🔥 총 열량 (칼로리)</span>
-              <span id="calInfoVal" class="meta-val">829.6 Kcal</span>
+          <div class="nutrition-box">
+            <div class="nutrition-row">
+              <span>🔥 총 열량</span>
+              <span id="calInfoVal" class="nutrition-val">-</span>
             </div>
-            <div class="meta-row">
-              <span>🌾 주요 영양소</span>
-              <span id="ntrInfoVal" style="color: #cbd5e1; font-size: 0.8rem;">탄수화물 118.3g | 단백질 33.7g | 지방 23.5g</span>
+            <div class="nutrition-row">
+              <span>🌾 영양소</span>
+              <span id="ntrInfoVal" style="color: var(--text-secondary); font-size: 0.79rem;">-</span>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Right Column: Today's Meal Voting Form -->
+      <!-- Right: Voting -->
       <aside>
-        <!-- Voting Enabled Card (Only for Today's Date) -->
-        <div id="votingCardBox" class="vote-card">
-          <div class="vote-badge-today">
-            <span>🗳️ 오늘 급식 만족도 투표</span>
-            <span style="font-size: 0.7rem; opacity: 0.9;">(오늘 날짜 전용)</span>
+        <!-- 투표 카드 (오늘) -->
+        <div class="card" id="votingCardBox">
+          <div class="card-header">
+            <div class="card-title">🗳️ 오늘 급식 투표</div>
+            <span class="badge badge-accent">오늘만 가능</span>
           </div>
-          <p style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.4;">
-            오늘 대진전자통신고 급식 맛은 어떠셨나요? 별점을 누르고 한줄평을 남겨주세요!
+
+          <!-- 상태 A: 로그인 안 된 경우 -->
+          <div id="authLoginSection">
+            <!-- GitHub Client ID 미설정 시 안내 -->
+            <div id="clientIdNotice" class="config-notice" style="display:none;">
+              ⚠️ <strong>설정 필요:</strong> 코드 상단의 <code>GITHUB_CLIENT_ID</code>를 실제 GitHub OAuth App의 Client ID로 변경해 주세요.
+            </div>
+
+            <div class="login-prompt">
+              <div class="gh-logo">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" style="color: var(--text-primary)">
+                  <path
+                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+              </div>
+              <h3>GitHub 로그인 필요</h3>
+              <p>급식 만족도 투표에 참여하려면<br>GitHub 계정으로 로그인해야 합니다.</p>
+              <button class="gh-login-btn" id="startLoginBtn" onclick="startGithubDeviceFlow()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                  <path
+                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+                GitHub로 로그인하기
+              </button>
+            </div>
+          </div>
+
+          <!-- 상태 B: Device Flow 코드 입력 대기 중 -->
+          <div id="authDeviceSection" style="display:none;">
+            <div class="device-flow-box">
+              <p>
+                아래 코드를 복사하고<br>
+                <strong>github.com/login/device</strong> 에서 입력해 주세요.
+              </p>
+              <div class="device-code-display" id="deviceCodeDisplay" onclick="copyDeviceCode()" title="클릭하여 복사">
+                ------
+              </div>
+              <a id="openGithubLink" href="https://github.com/login/device" target="_blank" class="open-github-btn">
+                🔗 github.com/login/device 열기
+              </a>
+              <div class="polling-status">
+                <div class="spinner"></div>
+                <span>인증 확인 중... (코드 입력 후 자동으로 완료됩니다)</span>
+              </div>
+              <br>
+              <button class="cancel-auth-btn" onclick="cancelDeviceFlow()">취소하기</button>
+              <p id="pollDebugLog"
+                style="font-size: 11px; color: var(--red); margin-top: 10px; word-break: break-all; text-align: center;">
+              </p>
+            </div>
+          </div>
+
+          <!-- 상태 C: 로그인 완료 → 투표 폼 -->
+          <div id="authVoteSection" style="display:none;">
+            <div class="user-profile-bar">
+              <img id="userAvatar" class="user-avatar" src="" alt="avatar">
+              <div class="user-info">
+                <div class="user-name" id="userDisplayName">사용자</div>
+                <div class="user-label">✅ GitHub 인증 완료</div>
+              </div>
+              <button class="logout-btn" onclick="logout()">로그아웃</button>
+            </div>
+
+            <div class="vote-section">
+              <p class="vote-description">오늘 급식은 어떠셨나요? 별점과 한줄평을 남겨주세요!</p>
+              <div class="star-row" id="starRow">
+                <button class="star-btn" onclick="selectStar(1)">🫠<br><small>1점</small></button>
+                <button class="star-btn" onclick="selectStar(2)">🙁<br><small>2점</small></button>
+                <button class="star-btn" onclick="selectStar(3)">😐<br><small>3점</small></button>
+                <button class="star-btn" onclick="selectStar(4)">😊<br><small>4점</small></button>
+                <button class="star-btn active" onclick="selectStar(5)">😋<br><small>5점</small></button>
+              </div>
+              <textarea id="studentReviewInput" class="review-input"
+                placeholder="한줄평을 남겨주세요! (예: 오늘 치킨 진짜 맛있었어요 🍗)"></textarea>
+              <button class="submit-btn" onclick="submitTodayVote()">투표 제출하기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 투표 잠금 (오늘 날짜 아닌 경우) -->
+        <div class="card" id="votingLockedBox" style="display: none;">
+          <div class="vote-locked">
+            <div class="lock-icon">🔒</div>
+            <strong style="color: var(--text-primary); font-size: 0.92rem; display:block; margin-bottom:0.4rem;">투표 참여
+              불가</strong>
+            <span>급식 만족도 투표는 <strong>오늘 날짜</strong>에만 참여할 수 있습니다.</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ===== VIEW 2: 만족도 통계 ===== -->
+    <div id="statsView" class="content-grid" style="display: none;">
+      <section>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 이번 주 일별 만족도</div>
+            <span class="badge badge-accent">10월 1주차</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            대진전자통신고 재학생 실시간 투표 데이터 기준
           </p>
-
-          <!-- 5 Star Rating Buttons -->
-          <div class="star-rating-group">
-            <button class="star-btn" onclick="selectStar(1)" title="1점 (아쉬워요)">🫠 1</button>
-            <button class="star-btn" onclick="selectStar(2)" title="2점 (그냥 그래요)">🙁 2</button>
-            <button class="star-btn" onclick="selectStar(3)" title="3점 (보통이에요)">😐 3</button>
-            <button class="star-btn" onclick="selectStar(4)" title="4점 (맛있어요)">😊 4</button>
-            <button class="star-btn selected" onclick="selectStar(5)" title="5점 (최고예요!)">😋 5</button>
-          </div>
-
-          <!-- Student Review Comment Input -->
-          <textarea id="studentReviewInput" class="review-textarea" placeholder="오늘 급식 한줄평이나 영양사 선생님께 전하고 싶은 의견을 적어주세요! (예: 오늘 순살치킨 양념 소스 미쳤다 🍗)"></textarea>
-
-          <button class="submit-vote-btn" onclick="submitTodayVote()">
-            <span>🗳️오늘 급식 투표 제출하기</span>
-          </button>
-        </div>
-
-        <!-- Voting Disabled Banner for non-today dates -->
-        <div id="votingLockedBox" class="vote-locked-box" style="display: none;">
-          <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔒</div>
-          <strong style="color: #f8fafc;">투표 참여 제한</strong><br>
-          급식 만족도 투표는 <strong>오늘 날짜(2026-10-06)</strong>에 한해서만 실시간 참여할 수 있습니다.
-        </div>
-      </aside>
-    </main>
-
-    <!-- VIEW 2: 주간/월별 만족도 통계 (Weekly & Monthly Statistics) -->
-    <div id="statsView" class="dashboard-grid" style="display: none;">
-      <!-- Weekly Stat Chart Panel -->
-      <section class="panel-card">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span>📊</span> 이번 주 일자별 급식 만족도 평점
-          </div>
-          <span style="font-size: 0.8rem; color: #34d399; font-weight: bold;">10월 1주차</span>
-        </div>
-
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-          대진전자통신고 재학생들의 실시간 투표 데이터를 바탕으로 집계된 평점입니다.
-        </p>
-
-        <div id="weeklyStatBars" class="stat-bar-group">
-          <!-- Dynamically populated bars -->
+          <div id="weeklyStatBars" class="stat-list"></div>
         </div>
       </section>
-
-      <!-- Monthly Summary Panel -->
-      <aside class="panel-card">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span>📈</span> 10월 월간 통계 요약
+      <aside>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📈 월간 누적 요약</div>
           </div>
-        </div>
-
-        <div style="text-align: center; padding: 1.25rem; background: rgba(16, 185, 129, 0.1); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.3); margin-bottom: 1.25rem;">
-          <div style="font-size: 0.85rem; color: var(--text-muted);">10월 평균 급식 만족도</div>
-          <div id="monthlyAvgScore" style="font-size: 2.8rem; font-weight: 800; color: #34d399; margin: 0.2rem 0;">4.82 <span style="font-size: 1.2rem;">/ 5.0</span></div>
-          <div style="font-size: 0.8rem; color: var(--text-white);">총 참여 학생 투표 수: <strong id="totalVoteCountVal">182표</strong></div>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem;">
-          <div style="display: flex; justify-content: space-between; padding: 0.6rem; background: rgba(30, 41, 59, 0.4); border-radius: 10px;">
-            <span>😋 5점 (최고예요) 선택 비율</span>
-            <span style="color: #34d399; font-weight: bold;">84%</span>
+          <div class="monthly-highlight">
+            <div class="monthly-score" id="monthlyScoreVal">0.00</div>
+            <div class="monthly-label">/ 5.0점 평균 만족도</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.4rem;">
+              총 <strong id="totalVoteCountVal" style="color: var(--accent-text);">0표</strong> 참여
+            </div>
           </div>
-          <div style="display: flex; justify-content: space-between; padding: 0.6rem; background: rgba(30, 41, 59, 0.4); border-radius: 10px;">
-            <span>🍱 최고 만족도 요일</span>
-            <span style="color: var(--accent-yellow); font-weight: bold;">수요일 (짜장면&왕새우튀김)</span>
+          <div class="info-list">
+            <div class="info-item"><span class="info-item-label">😋 5점 선택 비율</span><span class="info-item-val"
+                id="fiveStarRatioVal">0%</span></div>
+            <div class="info-item"><span class="info-item-label">🏆 최고 만족 요일</span><span
+                class="info-item-val">수요일</span></div>
+            <div class="info-item"><span class="info-item-label">🍱 최고 인기 메뉴</span><span class="info-item-val">순살치킨
+                &amp; 양념소스</span></div>
           </div>
         </div>
       </aside>
     </div>
 
-    <!-- VIEW 3: 인기 메뉴 TOP 5 & 리뷰 (Popular Dishes & Reviews) -->
-    <div id="rankingView" class="dashboard-grid" style="display: none;">
-      <!-- Top 5 Dishes -->
-      <section class="panel-card">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span>🏆</span> 10월 대진전자통신고 학생 인기 메뉴 TOP 5
+    <!-- ===== VIEW 3: 인기 메뉴 & 리뷰 ===== -->
+    <div id="rankingView" class="content-grid" style="display: none;">
+      <section>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏆 10월 인기 메뉴 TOP 5</div>
           </div>
-        </div>
-
-        <div id="topDishesContainer">
-          <div class="top-dish-item">
-            <span class="rank-badge rank-1">1</span>
-            <div style="flex: 1;">
-              <div style="font-weight: 700; color: #f8fafc;">순살치킨, 양념S</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 6일 (화) 제공 | 추천수 142표</div>
+          <div class="rank-list">
+            <div class="rank-row">
+              <span class="rank-num rank-1">1</span>
+              <div class="rank-info">
+                <div class="rank-dish">순살치킨, 양념소스</div>
+                <div class="rank-meta">10월 6일 (화) · 추천 142표</div>
+              </div>
+              <span class="rank-score">❤️ 4.98</span>
             </div>
-            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.98</span>
-          </div>
-
-          <div class="top-dish-item">
-            <span class="rank-badge rank-2">2</span>
-            <div style="flex: 1;">
-              <div style="font-weight: 700; color: #f8fafc;">닭갈비볶음밥</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 2일 (금) 제공 | 추천수 128표</div>
+            <div class="rank-row">
+              <span class="rank-num rank-2">2</span>
+              <div class="rank-info">
+                <div class="rank-dish">닭갈비볶음밥</div>
+                <div class="rank-meta">10월 2일 (금) · 추천 128표</div>
+              </div>
+              <span class="rank-score">❤️ 4.92</span>
             </div>
-            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.92</span>
-          </div>
-
-          <div class="top-dish-item">
-            <span class="rank-badge rank-3">3</span>
-            <div style="flex: 1;">
-              <div style="font-weight: 700; color: #f8fafc;">코코넛왕새우튀김, 칠리S</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 7일 (수) 제공 | 추천수 119표</div>
+            <div class="rank-row">
+              <span class="rank-num rank-3">3</span>
+              <div class="rank-info">
+                <div class="rank-dish">코코넛 왕새우튀김, 칠리소스</div>
+                <div class="rank-meta">10월 7일 (수) · 추천 119표</div>
+              </div>
+              <span class="rank-score">❤️ 4.88</span>
             </div>
-            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.88</span>
-          </div>
-
-          <div class="top-dish-item">
-            <span class="rank-badge rank-other">4</span>
-            <div style="flex: 1;">
-              <div style="font-weight: 700; color: #f8fafc;">김치제육볶음</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 8일 (목) 제공 | 추천수 105표</div>
+            <div class="rank-row">
+              <span class="rank-num rank-other">4</span>
+              <div class="rank-info">
+                <div class="rank-dish">김치제육볶음</div>
+                <div class="rank-meta">10월 8일 (목) · 추천 105표</div>
+              </div>
+              <span class="rank-score">❤️ 4.81</span>
             </div>
-            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.81</span>
-          </div>
-
-          <div class="top-dish-item">
-            <span class="rank-badge rank-other">5</span>
-            <div style="flex: 1;">
-              <div style="font-weight: 700; color: #f8fafc;">망고코코푸딩</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">10월 2일 (금) 제공 | 추천수 98표</div>
+            <div class="rank-row">
+              <span class="rank-num rank-other">5</span>
+              <div class="rank-info">
+                <div class="rank-dish">망고코코 푸딩</div>
+                <div class="rank-meta">10월 2일 (금) · 추천 98표</div>
+              </div>
+              <span class="rank-score">❤️ 4.79</span>
             </div>
-            <span style="color: var(--accent-yellow); font-size: 1.1rem;">❤️ 4.79</span>
           </div>
         </div>
       </section>
-
-      <!-- Student Reviews Feed -->
-      <aside class="panel-card">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span>💬</span> 실시간 학생 한줄평 피드백
+      <aside>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💬 학생 한줄평</div>
           </div>
-        </div>
-
-        <div id="reviewsFeedContainer">
-          <!-- Dynamic review items -->
+          <div id="reviewsFeedContainer" class="review-list"></div>
         </div>
       </aside>
     </div>
-  </div>
 
-  <!-- JavaScript App Logic -->
+  </div><!-- /.app-wrap -->
+
   <script>
-    /* Application State & Target School Codes */
-    const ATPT_CODE = "C10";       // 부산광역시교육청
-    const SCHOOL_CODE = "7150597"; // 대진전자통신고등학교
+    /* =====================================================
+       ⚙️ 설정 1: GitHub OAuth App Client ID
+    ===================================================== */
+    const GITHUB_CLIENT_ID = 'Ov23liTjUpOj4R35f39b';
 
-    let selectedDate = new Date("2026-10-06"); // Today's date initialized to 2026-10-06
-    const todayYMD = "2026-10-06";
+    /* =====================================================
+       ⚙️ 설정 2: Supabase URL 및 anon key (데이터베이스)
+       Supabase 프로젝트 설정 -> API 에서 복사하여 입력하세요.
+    ===================================================== */
+    const SUPABASE_URL = 'https://cwnkyixexrexqpkhlxng.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Hcsk7AUN0ZGVPabBs2dTBg_Is90S0c-';
 
+    window.onerror = function(msg, url, line, col, error) {
+      alert("Error: " + msg + "\nLine: " + line);
+    };
+
+    // Supabase 클라이언트 초기화 (사용자가 키를 입력했을 때만)
+    let supabase = null;
+    try {
+      if (SUPABASE_URL && SUPABASE_KEY && SUPABASE_URL.startsWith('http') && window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      }
+    } catch(e) {
+      console.error("Supabase init failed", e);
+    }
+
+    /* ===== App State ===== */
+    const ATPT_CODE = "C10";
+    const SCHOOL_CODE = "7150597";
+    let selectedDate = new Date("2026-10-08");
+    const todayYMD = "2026-10-08";
     let selectedStarRating = 5;
     let showAllergyInfo = true;
-
-    // Cache for NEIS API fetched meal data
     const mealCache = {};
-
-    // Initial reviews & vote storage in localStorage
     const STORAGE_VOTES_KEY = "daejin_meal_votes_v1";
+    const STORAGE_AUTH_KEY = "daejin_gh_auth_v1";
 
-    /* Sample initial reviews if localStorage empty */
+    // GitHub Auth state
+    let ghUser = null;          // { login, name, avatar_url, token }
+    let deviceFlowTimeout = null;
+
     const initialReviews = [
-      { date: "2026-10-06", stars: 5, text: "오늘 순살치킨 양념 소스 진짜 꿀맛입니다 🍗 대진전자 영양사님 감사해요!", time: "12:35" },
-      { date: "2026-10-06", stars: 5, text: "한우 육개장 국물 얼큰하고 고기 엄청 많아요 👍👍", time: "12:40" },
-      { date: "2026-10-02", stars: 5, text: "닭갈비 볶음밥에 망고 푸딩 조합 미쳤음!!", time: "12:20" },
-      { date: "2026-10-01", stars: 4, text: "쭈삼 볶음밥 맛있어요. 마요네즈 찍어먹으니까 존맛!", time: "12:45" }
+      { date: "2026-10-08", stars: 5, text: "오늘 순살치킨 양념 소스 진짜 꿀맛입니다 🍗 대진전자 영양사님 감사해요!", time: "12:35", author: "daejin_student" },
+      { date: "2026-10-08", stars: 5, text: "한우 육개장 국물 얼큰하고 고기 엄청 많아요 👍👍", time: "12:40", author: "daejin_student2" },
+      { date: "2026-10-02", stars: 5, text: "닭갈비 볶음밥에 망고 푸딩 조합 미쳤음!!", time: "12:20", author: "student_03" },
+      { date: "2026-10-01", stars: 4, text: "쭈삼 볶음밥 맛있어요. 마요네즈 찍어먹으니까 존맛!", time: "12:45", author: "student_04" }
     ];
 
+    /* ===== Init ===== */
     document.addEventListener("DOMContentLoaded", () => {
-      initApp();
-    });
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-      setTimeout(initApp, 50);
-    }
-
-    function initApp() {
+      loadTheme();
+      loadSavedAuth();
       updateDateDisplay();
       fetchMealDataForDate(formatYMD(selectedDate));
-      renderWeeklyStats();
-      renderReviewsFeed();
+      fetchSupabaseData().then(() => {
+        if (allVotes.length === 0) {
+          renderWeeklyStats();
+          renderMonthlyStats();
+          renderReviewsFeed();
+        }
+      });
+      checkClientId();
+    });
+
+    function checkClientId() {
+      if (GITHUB_CLIENT_ID === 'YOUR_GITHUB_CLIENT_ID') {
+        document.getElementById('clientIdNotice').style.display = 'block';
+      }
     }
 
-    /* Date Utility Functions */
-    function formatYMD(dateObj) {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const d = String(dateObj.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+    /* ===== Theme ===== */
+    function setTheme(mode) {
+      document.documentElement.setAttribute('data-theme', mode);
+      localStorage.setItem('meal_theme', mode);
+      document.getElementById('btnDark').classList.toggle('active', mode === 'dark');
+      document.getElementById('btnLight').classList.toggle('active', mode === 'light');
     }
 
-    function formatYMDCompact(dateObj) {
-      return formatYMD(dateObj).replace(/-/g, '');
+    function loadTheme() {
+      setTheme(localStorage.getItem('meal_theme') || 'dark');
     }
 
-    function getKoreanDayName(dateObj) {
-      const days = ['일', '월', '화', '수', '목', '금', '토'];
-      return days[dateObj.getDay()];
+    /* ===== Settings Panel ===== */
+    function toggleSettings() {
+      const panel = document.getElementById('settingsPanel');
+      const overlay = document.getElementById('settingsOverlay');
+      const isOpen = panel.classList.contains('open');
+      panel.classList.toggle('open', !isOpen);
+      overlay.classList.toggle('open', !isOpen);
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsPanel').classList.remove('open');
+      document.getElementById('settingsOverlay').classList.remove('open');
+    }
+
+    /* ===== GitHub Auth - Saved Session ===== */
+    function loadSavedAuth() {
+      try {
+        const saved = localStorage.getItem(STORAGE_AUTH_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.token && parsed.login) {
+            // Verify token still valid by calling /user
+            verifyAndSetUser(parsed);
+            return;
+          }
+        }
+      } catch (e) { }
+      renderAuthState('login');
+    }
+
+    async function verifyAndSetUser(userData) {
+      try {
+        const res = await fetch('/gh-api/user', {
+          headers: { 'Authorization': 'Bearer ' + userData.token }
+        });
+        if (res.ok) {
+          const freshData = await res.json();
+          ghUser = {
+            login: freshData.login,
+            name: freshData.name || freshData.login,
+            avatar_url: freshData.avatar_url,
+            token: userData.token
+          };
+          localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(ghUser));
+          renderAuthState('voted');
+        } else {
+          localStorage.removeItem(STORAGE_AUTH_KEY);
+          renderAuthState('login');
+        }
+      } catch (e) {
+        // Network error - still show user if cached
+        ghUser = userData;
+        renderAuthState('voted');
+      }
+    }
+
+    /* ===== GitHub Device Flow ===== */
+    async function startGithubDeviceFlow() {
+      if (GITHUB_CLIENT_ID === 'YOUR_GITHUB_CLIENT_ID') {
+        alert('⚠️ GitHub OAuth App의 Client ID를 코드에 설정해야 합니다.\n\nGitHub → Settings → Developer settings → OAuth Apps에서 앱을 만들고,\nindex.html 상단의 GITHUB_CLIENT_ID 값을 변경해 주세요.');
+        return;
+      }
+
+      renderAuthState('device');
+
+      try {
+        // Step 1: Request device code
+        const res = await fetch('/gh-api/device', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            client_id: GITHUB_CLIENT_ID,
+            scope: 'read:user'
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error('GitHub API 오류: ' + res.status);
+        }
+
+        const data = await res.json();
+
+        if (data.error) {
+          throw new Error(data.error_description || data.error);
+        }
+
+        const { device_code, user_code, verification_uri, interval, expires_in } = data;
+
+        // Show user code
+        document.getElementById('deviceCodeDisplay').textContent = user_code;
+        document.getElementById('openGithubLink').href = verification_uri || 'https://github.com/login/device';
+
+        // Step 2: Poll for token
+        let pollInterval = (interval || 5) * 1000;
+        const expiresAt = Date.now() + (expires_in || 900) * 1000;
+
+        const pollToken = async () => {
+          if (!document.getElementById('authDeviceSection') || document.getElementById('authDeviceSection').style.display === 'none') {
+            return; // Stop polling if user cancelled
+          }
+
+          if (Date.now() > expiresAt) {
+            cancelDeviceFlow();
+            alert('⏱️ 인증 시간이 초과되었습니다. 다시 시도해 주세요.');
+            return;
+          }
+
+          try {
+            const tokenRes = await fetch('/gh-api/token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                client_id: GITHUB_CLIENT_ID,
+                device_code: device_code,
+                grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+              })
+            });
+
+            const resText = await tokenRes.text();
+            document.getElementById('pollDebugLog').textContent = `[Debug] Status: ${tokenRes.status}, Error: ${JSON.parse(resText).error || 'None'}`;
+
+            let tokenData;
+            try {
+              tokenData = JSON.parse(resText);
+            } catch (e) {
+              throw new Error(`JSON 파싱 실패`);
+            }
+
+            if (tokenData.access_token) {
+              // Success! Get user info
+              await fetchGithubUser(tokenData.access_token);
+              return; // Stop polling
+            } else if (tokenData.error === 'authorization_pending') {
+              // Still waiting
+              deviceFlowTimeout = setTimeout(pollToken, pollInterval);
+            } else if (tokenData.error === 'slow_down') {
+              // GitHub requires us to slow down polling
+              pollInterval += 5000;
+              deviceFlowTimeout = setTimeout(pollToken, pollInterval);
+            } else if (tokenData.error === 'expired_token') {
+              cancelDeviceFlow();
+              alert('⏱️ 코드가 만료되었습니다. 다시 시도해 주세요.');
+            } else if (tokenData.error === 'access_denied') {
+              cancelDeviceFlow();
+              alert('❌ 로그인이 취소되었습니다.');
+            } else {
+              // Other errors, retry anyway
+              deviceFlowTimeout = setTimeout(pollToken, pollInterval);
+            }
+          } catch (e) {
+            console.warn('Poll error:', e);
+            document.getElementById('pollDebugLog').textContent = `[Debug Error] ${e.message}`;
+            deviceFlowTimeout = setTimeout(pollToken, pollInterval);
+          }
+        };
+
+        // Start polling
+        deviceFlowTimeout = setTimeout(pollToken, pollInterval);
+
+      } catch (err) {
+        console.error('Device flow error:', err);
+        renderAuthState('login');
+        alert('❌ GitHub 로그인 시작 중 오류가 발생했습니다.\n' + err.message);
+      }
+    }
+
+    async function fetchGithubUser(token) {
+      try {
+        const res = await fetch('/gh-api/user', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (!res.ok) throw new Error('사용자 정보를 가져올 수 없습니다.');
+
+        const userData = await res.json();
+        ghUser = {
+          login: userData.login,
+          name: userData.name || userData.login,
+          avatar_url: userData.avatar_url,
+          token: token
+        };
+
+        localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(ghUser));
+        renderAuthState('voted');
+
+        if (window.confetti) {
+          confetti({ particleCount: 60, spread: 55, origin: { y: 0.5 } });
+        }
+      } catch (err) {
+        renderAuthState('login');
+        alert('❌ 사용자 정보를 불러오는 중 오류가 발생했습니다.\n' + err.message);
+      }
+    }
+
+
+    function cancelDeviceFlow() {
+      if (deviceFlowTimeout) {
+        clearTimeout(deviceFlowTimeout);
+        deviceFlowTimeout = null;
+      }
+      renderAuthState('login');
+    }
+
+    function logout() {
+      ghUser = null;
+      localStorage.removeItem(STORAGE_AUTH_KEY);
+      renderAuthState('login');
+    }
+
+    function copyDeviceCode() {
+      const code = document.getElementById('deviceCodeDisplay').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const el = document.getElementById('deviceCodeDisplay');
+        const original = el.textContent;
+        el.textContent = '✓ 복사됨!';
+        el.classList.add('copied');
+        setTimeout(() => {
+          el.textContent = original;
+          el.classList.remove('copied');
+        }, 1500);
+      });
+    }
+
+    /* ===== Auth State Renderer ===== */
+    function renderAuthState(state) {
+      // 'login' | 'device' | 'voted'
+      document.getElementById('authLoginSection').style.display = state === 'login' ? 'block' : 'none';
+      document.getElementById('authDeviceSection').style.display = state === 'device' ? 'block' : 'none';
+      document.getElementById('authVoteSection').style.display = state === 'voted' ? 'block' : 'none';
+
+      if (state === 'voted' && ghUser) {
+        document.getElementById('userAvatar').src = ghUser.avatar_url || '';
+        document.getElementById('userDisplayName').textContent = ghUser.name || ghUser.login;
+      }
+    }
+
+    /* ===== Date Utils ===== */
+    function formatYMD(d) {
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+
+    function getKorDay(d) {
+      return ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
     }
 
     function updateDateDisplay() {
       const ymd = formatYMD(selectedDate);
-      const dayName = getKoreanDayName(selectedDate);
-
+      const isToday = ymd === todayYMD;
       document.getElementById('datePicker').value = ymd;
-      document.getElementById('selectedDateTitle').textContent = `${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 (${dayName}) 급식 식단`;
-
-      // Enable/Disable Voting Box depending on if selectedDate is today
-      const isToday = (ymd === todayYMD);
+      document.getElementById('selectedDateTitle').textContent =
+        selectedDate.getFullYear() + '년 ' +
+        (selectedDate.getMonth() + 1) + '월 ' +
+        selectedDate.getDate() + '일 (' + getKorDay(selectedDate) + ') 식단';
       document.getElementById('votingCardBox').style.display = isToday ? 'block' : 'none';
       document.getElementById('votingLockedBox').style.display = isToday ? 'none' : 'block';
-
-      document.getElementById('todayQuickBtn').classList.toggle('today-highlight', isToday);
+      document.getElementById('todayBtn').classList.toggle('today-active', isToday);
     }
 
-    function changeDate(days) {
-      selectedDate.setDate(selectedDate.getDate() + days);
+    function changeDate(delta) {
+      selectedDate.setDate(selectedDate.getDate() + delta);
       updateDateDisplay();
       fetchMealDataForDate(formatYMD(selectedDate));
     }
@@ -867,230 +1767,248 @@
 
     function toggleAllergyDisplay() {
       showAllergyInfo = document.getElementById('allergyToggle').checked;
-      renderCurrentDishes();
+      const compact = formatYMD(selectedDate).replace(/-/g, '');
+      if (mealCache[compact]) renderCurrentDishes(mealCache[compact]);
     }
 
-    /* NEIS Open API Fetcher Logic */
+    /* ===== NEIS API ===== */
     async function fetchMealDataForDate(ymdStr) {
-      const ymdCompact = ymdStr.replace(/-/g, '');
+      const compact = ymdStr.replace(/-/g, '');
       const container = document.getElementById('dishesListContainer');
+      if (mealCache[compact]) { renderCurrentDishes(mealCache[compact]); return; }
 
-      if (mealCache[ymdCompact]) {
-        renderCurrentDishes(mealCache[ymdCompact]);
-        return;
-      }
+      container.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><strong>급식 정보 불러오는 중...</strong><span>NEIS 서버에 요청 중입니다.</span></div>';
 
-      container.innerHTML = `
-        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-          ⏳ 나이스(NEIS)에서 대진전자통신고 급식 정보를 불러오는 중...
-        </div>
-      `;
-
-      const apiUrl = `https://open.neis.go.kr/hub/mealServiceDietInfo?Type=json&pIndex=1&pSize=10&ATPT_OFCDC_SC_CODE=${ATPT_CODE}&SD_SCHUL_CODE=${SCHOOL_CODE}&MLSV_YMD=${ymdCompact}`;
-
+      const url = 'https://open.neis.go.kr/hub/mealServiceDietInfo?Type=json&pIndex=1&pSize=10' +
+        '&ATPT_OFCDC_SC_CODE=' + ATPT_CODE +
+        '&SD_SCHUL_CODE=' + SCHOOL_CODE +
+        '&MLSV_YMD=' + compact;
       try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-
-        if (data.mealServiceDietInfo && data.mealServiceDietInfo[1] && data.mealServiceDietInfo[1].row) {
-          const rowData = data.mealServiceDietInfo[1].row[0];
-          mealCache[ymdCompact] = rowData;
-          renderCurrentDishes(rowData);
+        const res = await fetch(url);
+        const data = await res.json();
+        const rows = data.mealServiceDietInfo && data.mealServiceDietInfo[1] && data.mealServiceDietInfo[1].row;
+        if (rows) {
+          mealCache[compact] = rows[0];
+          renderCurrentDishes(rows[0]);
         } else {
-          // No NEIS data (e.g. Weekend or Holiday)
-          renderNoMealView();
+          renderNoMeal();
         }
-      } catch (err) {
-        console.warn("NEIS API Fetch fallback triggered:", err);
-        // Fallback demo meal provider if network rate limited
-        const fallback = getFallbackMealData(ymdCompact);
-        mealCache[ymdCompact] = fallback;
-        renderCurrentDishes(fallback);
+      } catch (e) {
+        const fallback = getFallbackMeal(compact);
+        if (fallback) { mealCache[compact] = fallback; renderCurrentDishes(fallback); }
+        else renderNoMeal();
       }
     }
 
     function renderCurrentDishes(mealData) {
       const container = document.getElementById('dishesListContainer');
-      const calVal = document.getElementById('calInfoVal');
-      const ntrVal = document.getElementById('ntrInfoVal');
+      if (!mealData || !mealData.DDISH_NM) { renderNoMeal(); return; }
+      document.getElementById('calInfoVal').textContent = mealData.CAL_INFO || '-';
+      document.getElementById('ntrInfoVal').innerHTML = (mealData.NTR_INFO || '').replace(/<br\/>/g, ' | ');
 
-      if (!mealData || !mealData.DDISH_NM) {
-        renderNoMealView();
+      const dishes = mealData.DDISH_NM.split('<br/>');
+      container.innerHTML = dishes.map(dish => {
+        let name = dish.trim();
+        let allergy = '';
+        const m = dish.match(/\(([\d\.]+)\)/);
+        if (m) { allergy = '알레르기 ' + m[1]; name = dish.replace(/\([\d\.]+\)/, '').trim(); }
+        return '<div class="dish-row"><span class="dish-name">' + name + '</span>' +
+          (showAllergyInfo && allergy ? '<span class="allergy-tag">' + allergy + '</span>' : '') +
+          '</div>';
+      }).join('');
+    }
+
+    function renderNoMeal() {
+      document.getElementById('calInfoVal').textContent = '-';
+      document.getElementById('ntrInfoVal').textContent = '-';
+      document.getElementById('dishesListContainer').innerHTML =
+        '<div class="empty-state"><div class="icon">🏖️</div><strong>등록된 급식이 없습니다</strong><span>주말, 공휴일 또는 급식이 없는 날입니다.</span></div>';
+    }
+
+    function getFallbackMeal(compact) {
+      const meals = {
+        '20261006': { DDISH_NM: '귀리밥 <br/>육개장(한우) (5.6.9.13.16)<br/>애호박새우살볶음 (5.6.9)<br/>명란돌자반 (5)<br/>순살치킨,양념S (1.2.5.6.12.13.15)<br/>배추김치 (9)', CAL_INFO: '829.6 Kcal', NTR_INFO: '탄수화물 118.3g | 단백질 33.7g | 지방 23.5g' },
+        '20261007': { DDISH_NM: '짜장면&오이채 (1.2.5.6.10.13.16)<br/>파송송계란탕국 (1.5.6.9)<br/>비타민샐러드 (1.2.5.6.12)<br/>코코넛왕새우튀김,칠리S (1.5.6.9.12.13)<br/>단무지무침<br/>마시는유산균음료 (2)', CAL_INFO: '1004.5 Kcal', NTR_INFO: '탄수화물 161.7g | 단백질 40.0g | 지방 24.2g' },
+        '20261008': { DDISH_NM: '쌀밥<br/>쇠고기떡국 (1.5.6.13.16)<br/>김치제육볶음 (9.10.13)<br/>콩나물무침 (5)<br/>단호박버터구이 (2)<br/>배추김치 (9)', CAL_INFO: '875.0 Kcal', NTR_INFO: '탄수화물 130.2g | 단백질 36.5g | 지방 25.1g' }
+      };
+      return meals[compact] || null;
+    }
+
+    /* ===== Voting ===== */
+    function selectStar(rating) {
+      selectedStarRating = rating;
+      document.querySelectorAll('.star-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i + 1 === rating);
+      });
+    }
+
+    async function submitTodayVote() {
+      if (!ghUser) {
+        alert('⚠️ 투표하려면 GitHub 로그인이 필요합니다.');
+        return;
+      }
+      if (!supabase) {
+        alert('⚠️ Supabase 설정이 필요합니다. 소스코드를 확인해주세요.');
         return;
       }
 
-      calVal.textContent = mealData.CAL_INFO || '800.0 Kcal';
-      ntrVal.innerHTML = (mealData.NTR_INFO || '').replace(/<br\/>/g, ' | ');
+      const text = document.getElementById('studentReviewInput').value.trim();
+      const mealData = getFallbackMeal(todayYMD) || { DDISH_NM: '오늘의 급식' };
+      // html 태그 제거해서 순수 텍스트만 저장
+      const mealContent = mealData.DDISH_NM.replace(/<[^>]*>?/gm, ' ').trim();
 
-      // Parse dish names & allergy numbers
-      const dishesRaw = mealData.DDISH_NM.split('<br/>');
-      let html = '';
+      try {
+        // 투표 저장 (Supabase)
+        const { error } = await supabase.from('meal_votes').insert([{
+          github_id: ghUser.login,
+          github_name: ghUser.name,
+          vote_date: todayYMD,
+          meal_content: mealContent,
+          stars: selectedStarRating,
+          review: text || '오늘 급식 맛있게 잘 먹었습니다!'
+        }]);
 
-      dishesRaw.forEach(dish => {
-        let nameOnly = dish.trim();
-        let allergyStr = '';
-
-        const match = dish.match(/\(([\d\.]+)\)/);
-        if (match) {
-          allergyStr = `알레르기: ${match[1]}`;
-          nameOnly = dish.replace(/\([\d\.]+\)/, '').trim();
+        if (error) {
+          if (error.code === '23505') { // Unique constraint violation (PostgreSQL)
+            alert('✅ ' + ghUser.name + '님은 오늘 이미 투표하셨습니다!\n내일 다시 참여해 주세요.');
+          } else {
+            throw error;
+          }
+          return;
         }
 
-        html += `
-          <div class="dish-card">
-            <span class="dish-name">${nameOnly}</span>
-            ${showAllergyInfo && allergyStr ? `<span class="dish-allergy">${allergyStr}</span>` : ''}
-          </div>
-        `;
-      });
+        if (window.confetti) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
 
-      container.innerHTML = html;
-    }
+        alert('🎉 ' + ghUser.name + '님의 투표가 제출되었습니다! (' + selectedStarRating + '점)');
+        document.getElementById('studentReviewInput').value = '';
 
-    function renderNoMealView() {
-      const container = document.getElementById('dishesListContainer');
-      document.getElementById('calInfoVal').textContent = '-';
-      document.getElementById('ntrInfoVal').textContent = '식단 정보가 없습니다.';
-
-      container.innerHTML = `
-        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); background: rgba(30, 41, 59, 0.3); border-radius: 14px;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏖️</div>
-          <strong style="font-size: 1.05rem; color: var(--text-white);">등록된 급식 식단이 없습니다.</strong><br>
-          <span style="font-size: 0.85rem;">(주말, 공휴일 또는 학사 일정상 급식이 제공되지 않는 날입니다.)</span>
-        </div>
-      `;
-    }
-
-    /* Fallback mock data matching real Daejin High School October menu */
-    function getFallbackMealData(ymdCompact) {
-      if (ymdCompact === '20261006') {
-        return {
-          DDISH_NM: "귀리밥 <br/>육개장(한우) (5.6.9.13.16)<br/>애호박새우살볶음 (5.6.9)<br/>명란돌자반 (5)<br/>순살치킨,양념S (1.2.5.6.12.13.15)<br/>배추김치 (9)",
-          CAL_INFO: "829.6 Kcal",
-          NTR_INFO: "탄수화물 118.3g | 단백질 33.7g | 지방 23.5g"
-        };
-      } else if (ymdCompact === '20261007') {
-        return {
-          DDISH_NM: "짜장면&오이채 (1.2.5.6.10.13.16)<br/>파송송계란탕국 (1.5.6.9)<br/>비타민샐러드 (1.2.5.6.12)<br/>코코넛왕새우튀김,칠리S (1.5.6.9.12.13)<br/>단무지무침 <br/>마시는유산균음료 (2)",
-          CAL_INFO: "1004.5 Kcal",
-          NTR_INFO: "탄수화물 161.7g | 단백질 40.0g | 지방 24.2g"
-        };
+        // 통계 및 피드 갱신
+        await fetchSupabaseData();
+      } catch (err) {
+        console.error(err);
+        alert('❌ 투표 저장 중 오류가 발생했습니다: ' + err.message);
       }
-      return null;
     }
 
-    /* Today's Meal Voting Logic */
-    function selectStar(rating) {
-      selectedStarRating = rating;
-      document.querySelectorAll('.star-btn').forEach((btn, idx) => {
-        btn.classList.toggle('selected', (idx + 1) === rating);
-      });
-    }
+    // Supabase에서 가져온 데이터를 담을 전역 변수
+    let allVotes = [];
 
-    function submitTodayVote() {
-      const reviewText = document.getElementById('studentReviewInput').value.trim();
-      const votes = getStoredVotes();
-
-      const newVote = {
-        date: todayYMD,
-        stars: selectedStarRating,
-        text: reviewText || "오늘 급식 맛있게 잘 먹었습니다!",
-        time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-      };
-
-      votes.unshift(newVote);
-      localStorage.setItem(STORAGE_VOTES_KEY, JSON.stringify(votes));
-
-      // Trigger Confetti fireworks celebration
-      if (window.confetti) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      }
-
-      alert(`🎉 대진전자통신고 오늘 급식 투표가 성공적으로 제출되었습니다!\n(선택 평점: ${selectedStarRating}점 ⭐️)`);
-      document.getElementById('studentReviewInput').value = '';
-
-      renderWeeklyStats();
-      renderReviewsFeed();
-    }
-
-    function getStoredVotes() {
+    async function fetchSupabaseData() {
+      if (!supabase) return;
       try {
-        const saved = localStorage.getItem(STORAGE_VOTES_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {}
-      return [...initialReviews];
+        const { data, error } = await supabase
+          .from('meal_votes')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        allVotes = data || [];
+
+        renderWeeklyStats();
+        renderMonthlyStats();
+        renderReviewsFeed();
+      } catch (err) {
+        console.error('Supabase 데이터 로드 실패:', err);
+      }
     }
 
-    /* Weekly & Monthly Statistics Renderer */
-    function renderWeeklyStats() {
-      const container = document.getElementById('weeklyStatBars');
-      const votes = getStoredVotes();
+    /* ===== Stats ===== */
+    function getDayString(dateStr) {
+      const d = new Date(dateStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+      return ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][d.getDay()];
+    }
 
-      const weekDays = [
-        { date: '2026-10-05', day: '월요일', menu: '차돌된장찌개 & 떡갈비', baseScore: 4.6 },
-        { date: '2026-10-06', day: '화요일 (오늘)', menu: '육개장 & 순살치킨 양념S', baseScore: 4.9 },
-        { date: '2026-10-07', day: '수요일', menu: '짜장면 & 코코넛 왕새우튀김', baseScore: 4.85 },
-        { date: '2026-10-08', day: '목요일', menu: '쇠고기떡국 & 김치제육볶음', baseScore: 4.75 },
-        { date: '2026-10-09', day: '금요일', menu: '한글날 휴업일 🇰🇷', baseScore: 0 }
-      ];
+    function renderWeeklyStats() {
+      // 최근 7일(이번 주) 데이터 필터링
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // 날짜별 그룹화
+      const dailyStats = {};
+      allVotes.forEach(v => {
+        const vDate = new Date(v.vote_date);
+        if (vDate >= weekAgo) {
+          if (!dailyStats[v.vote_date]) dailyStats[v.vote_date] = { sum: 0, count: 0, day: getDayString(v.vote_date) };
+          dailyStats[v.vote_date].sum += v.stars;
+          dailyStats[v.vote_date].count += 1;
+        }
+      });
+
+      // 화면에 보여줄 5일 추출 (최근 데이터 순)
+      let sortedDates = Object.keys(dailyStats).sort().reverse().slice(0, 5).reverse();
 
       let html = '';
-      weekDays.forEach(w => {
-        const pct = (w.baseScore / 5.0) * 100;
-        html += `
-          <div class="stat-bar-row">
-            <span class="stat-day-label">${w.day}</span>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill" style="width: ${w.baseScore > 0 ? pct : 0}%;"></div>
-            </div>
-            <span class="stat-score-val">${w.baseScore > 0 ? w.baseScore.toFixed(2) + '점' : '휴무'}</span>
-          </div>
-        `;
+      if (sortedDates.length === 0) {
+        html = '<div style="text-align:center; padding: 2rem; color: var(--text-muted);">이번 주 데이터가 없습니다.</div>';
+      } else {
+        html = sortedDates.map(date => {
+          const d = dailyStats[date];
+          const avg = d.sum / d.count;
+          const isToday = date === todayYMD ? '(오늘)' : '';
+          return '<div class="stat-row">' +
+            '<span class="stat-label">' + d.day + isToday + '</span>' +
+            '<div class="stat-track"><div class="stat-fill" style="width:' + (avg / 5 * 100).toFixed(1) + '%"></div></div>' +
+            '<span class="stat-score">' + avg.toFixed(2) + '</span>' +
+            '</div>';
+        }).join('');
+      }
+      document.getElementById('weeklyStatBars').innerHTML = html;
+    }
+
+    function renderMonthlyStats() {
+      // 이번 달 데이터 (단순히 전체 투표로 대체, 실전에서는 이번 달 필터)
+      const currentMonth = new Date().getMonth() + 1;
+      const thisMonthVotes = allVotes.filter(v => {
+        const d = new Date(v.vote_date);
+        return (d.getMonth() + 1) === currentMonth;
       });
 
-      container.innerHTML = html;
+      const totalVotes = thisMonthVotes.length;
+      let avgScore = 0;
+      let fiveStarRatio = 0;
+
+      if (totalVotes > 0) {
+        const sum = thisMonthVotes.reduce((acc, v) => acc + v.stars, 0);
+        avgScore = (sum / totalVotes).toFixed(2);
+        const fiveStars = thisMonthVotes.filter(v => v.stars === 5).length;
+        fiveStarRatio = Math.round((fiveStars / totalVotes) * 100);
+      }
+
+      // 일간 통계로 최고 인기 메뉴/요일 찾기 로직 등 추가 가능
+      document.getElementById('totalVoteCountVal').textContent = totalVotes + '표';
+      document.getElementById('monthlyScoreVal').textContent = avgScore;
+      document.getElementById('fiveStarRatioVal').textContent = fiveStarRatio + '%';
     }
 
     function renderReviewsFeed() {
-      const container = document.getElementById('reviewsFeedContainer');
-      const votes = getStoredVotes();
-
-      let html = '';
-      votes.slice(0, 5).forEach(v => {
-        const starsStr = '⭐'.repeat(v.stars);
-        html += `
-          <div class="review-feed-item">
-            <div class="review-feed-header">
-              <span>대진전자통신고 재학생</span>
-              <span class="review-feed-stars">${starsStr}</span>
-            </div>
-            <div style="color: #f8fafc; font-weight: 500; margin-bottom: 0.25rem;">${v.text}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: right;">${v.date} ${v.time || ''}</div>
-          </div>
-        `;
-      });
-
-      container.innerHTML = html;
+      const feed = allVotes.length > 0 ? allVotes : initialReviews; // Fallback
+      const votes = feed.slice(0, 6);
+      document.getElementById('reviewsFeedContainer').innerHTML = votes.map(v => {
+        const dateStr = v.vote_date ? v.vote_date : v.date;
+        const timeStr = v.created_at ? new Date(v.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : (v.time || '');
+        const authorStr = v.github_id || v.author || '재학생';
+        const textStr = v.review || v.text || '';
+        return '<div class="review-item">' +
+          '<div class="review-top">' +
+          '<span class="review-author">@' + authorStr + '</span>' +
+          '<span class="review-stars">' + '⭐'.repeat(v.stars) + '</span>' +
+          '</div>' +
+          '<div class="review-text">' + textStr + '</div>' +
+          '<div class="review-date">' + dateStr + ' ' + timeStr + '</div>' +
+          '</div>';
+      }).join('');
     }
 
-    /* Tab View Switcher */
-    function switchView(viewId) {
-      document.getElementById('todayMealView').style.display = (viewId === 'todayMealView') ? 'grid' : 'none';
-      document.getElementById('statsView').style.display = (viewId === 'statsView') ? 'grid' : 'none';
-      document.getElementById('rankingView').style.display = (viewId === 'rankingView') ? 'grid' : 'none';
-
-      document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-        btn.classList.toggle('active', (
-          (viewId === 'todayMealView' && idx === 0) ||
-          (viewId === 'statsView' && idx === 1) ||
-          (viewId === 'rankingView' && idx === 2)
-        ));
+    /* ===== Tab Switch ===== */
+    function switchView(viewId, tabIdx) {
+      ['todayMealView', 'statsView', 'rankingView'].forEach(id => {
+        document.getElementById(id).style.display = (id === viewId) ? 'grid' : 'none';
+      });
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === tabIdx);
       });
     }
   </script>
 </body>
+
 </html>
